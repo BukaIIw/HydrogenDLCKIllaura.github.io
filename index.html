@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Spookytime Наводка</title>
+  <style>
+    body { background:#0a0a0a; color:#66ffcc; font-family:monospace; }
+    #messages { height:300px; overflow-y:auto; background:#111; padding:10px; margin-bottom:10px; }
+    input { width:80%; padding:5px; }
+    button { padding:5px 10px; }
+  </style>
+</head>
+<body>
+  <h1>Spookytime ⚔ Наводчик</h1>
+  <div id="messages"></div>
+  <input id="userInput" placeholder="Опиши ситуацию...">
+  <button onclick="sendMessage()">Спросить</button>
+
+  <script>
+    async function sendMessage(){
+      const input = document.getElementById("userInput");
+      const messages = document.getElementById("messages");
+      messages.innerHTML += "<div><b>Ты:</b> "+input.value+"</div>";
+
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "Authorization":"Bearer ВАШ_API_KEY" // храним на прокси!
+        },
+        body:JSON.stringify({
+          model:"gpt-3.5-turbo",
+          messages:[
+            {role:"system", content:"Ты spooky‑ИИ-наводчик. Отвечай мистически, как KillAura-дух, но только советами игроку. Не целись сам, просто направляй."},
+            {role:"user", content:input.value}
+          ]
+        })
+      });
+
+      const data = await response.json();
+      const reply = data.choices[0].message.content;
+      messages.innerHTML += "<div><b>ИИ:</b> "+reply+"</div>";
+      input.value="";
+    }
+  </script>
+</body>
+</html>
