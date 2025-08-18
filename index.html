@@ -1,47 +1,47 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Spookytime Наводка</title>
-  <style>
-    body { background:#0a0a0a; color:#66ffcc; font-family:monospace; }
-    #messages { height:300px; overflow-y:auto; background:#111; padding:10px; margin-bottom:10px; }
-    input { width:80%; padding:5px; }
-    button { padding:5px 10px; }
-  </style>
+<meta charset="UTF-8">
+<title>SpookytimeAIRotation Compass</title>
+<style>
+  body { background:#000; color:#66ffcc; font-family:monospace; text-align:center; }
+  #canvas { margin-top:20px; background:#111; border:2px solid #66ffcc; }
+</style>
 </head>
 <body>
-  <h1>Spookytime ⚔ Наводчик</h1>
-  <div id="messages"></div>
-  <input id="userInput" placeholder="Опиши ситуацию...">
-  <button onclick="sendMessage()">Спросить</button>
-
+  <h1>🌀 Spookytime AI Rotation (Наводчик)</h1>
+  <canvas id="canvas" width="500" height="500"></canvas>
+  <div id="angles"></div>
   <script>
-    async function sendMessage(){
-      const input = document.getElementById("userInput");
-      const messages = document.getElementById("messages");
-      messages.innerHTML += "<div><b>Ты:</b> "+input.value+"</div>";
-
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json",
-          "Authorization":"Bearer ВАШ_API_KEY" // храним на прокси!
-        },
-        body:JSON.stringify({
-          model:"gpt-3.5-turbo",
-          messages:[
-            {role:"system", content:"Ты spooky‑ИИ-наводчик. Отвечай мистически, как KillAura-дух, но только советами игроку. Не целись сам, просто направляй."},
-            {role:"user", content:input.value}
-          ]
-        })
-      });
-
-      const data = await response.json();
-      const reply = data.choices[0].message.content;
-      messages.innerHTML += "<div><b>ИИ:</b> "+reply+"</div>";
-      input.value="";
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    let angle = 0;
+    function draw(){
+      ctx.fillStyle="#111";
+      ctx.fillRect(0,0,500,500);
+      // цель
+      ctx.fillStyle="red";
+      ctx.beginPath();
+      ctx.arc(250,250,30,0,Math.PI*2);
+      ctx.fill();
+      // вращающийся прицел
+      angle += 0.05;
+      const r=100;
+      const x=250+Math.cos(angle)*r;
+      const y=250+Math.sin(angle)*r;
+      ctx.fillStyle="#66ffcc";
+      ctx.beginPath();
+      ctx.arc(x,y,10,0,Math.PI*2);
+      ctx.fill();
+      // вычисляем yaw/pitch для подсказки
+      const dx=x-250, dy=y-250;
+      let yaw=Math.atan2(-dx,r)*180/Math.PI;
+      let pitch=Math.atan2(-dy,r)*180/Math.PI;
+      document.getElementById("angles").innerText=
+        `Yaw: ${yaw.toFixed(2)}, Pitch: ${pitch.toFixed(2)}`;
+      requestAnimationFrame(draw);
     }
+    draw();
   </script>
 </body>
 </html>
