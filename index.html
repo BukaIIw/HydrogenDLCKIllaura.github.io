@@ -2,105 +2,103 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>SpookytimeAI Config</title>
+  <title>Spookytime AI Configurator</title>
   <style>
-    body { background:#000; color:#66ffcc; font-family:monospace; text-align:center; }
-    #canvas { background:#111; border:2px solid #66ffcc; display:block; margin:15px auto; }
-    #chat   { width:500px; height:120px; margin:15px auto; background:#050505;
-              border:1px solid #333; overflow-y:auto; text-align:left; padding:5px; }
-    .controls { width:500px; margin:15px auto; text-align:left; }
-    label { display:block; margin:6px 0; }
-    button { margin-top:10px; padding:5px 10px; background:#111; color:#66ffcc; border:1px solid #66ffcc; cursor:pointer; }
+    body {
+      background: #000;
+      color: #66ffcc;
+      font-family: monospace;
+      text-align: center;
+    }
+    #panel {
+      width: 500px;
+      margin: 30px auto;
+      background: #111;
+      border: 1px solid #333;
+      padding: 20px;
+      border-radius: 6px;
+    }
+    label {
+      display: block;
+      margin: 12px 0;
+      text-align: left;
+    }
+    input[type=range] { width: 300px; }
+    button {
+      margin-top: 20px;
+      padding: 8px 15px;
+      background: #111;
+      color: #66ffcc;
+      border: 1px solid #66ffcc;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    #chat {
+      width: 500px;
+      height: 150px;
+      margin: 20px auto;
+      background: #050505;
+      border: 1px solid #333;
+      overflow-y: auto;
+      text-align: left;
+      padding: 5px;
+    }
   </style>
 </head>
 <body>
-  <h1>⚙️ SpookytimeAI Rotation Config</h1>
+  <h1>⚙️ Spookytime AI Configurator</h1>
 
-  <canvas id="canvas" width="500" height="300"></canvas>
-
-  <div class="controls">
-    <label>Скорость:
-      <input type="range" id="speed" min="50" max="400" value="200">
+  <div id="panel">
+    <label>Speed:
+      <input type="range" min="50" max="400" value="200" id="speed">
       <span id="speedVal">200</span>
     </label>
-    <label>Радиус:
-      <input type="range" id="radius" min="20" max="200" value="80">
+    <label>Radius:
+      <input type="range" min="20" max="200" value="80" id="radius">
       <span id="radiusVal">80</span>
     </label>
-    <label>Волна Y:
-      <input type="range" id="wave" min="0" max="80" value="30">
+    <label>Wave:
+      <input type="range" min="0" max="80" value="30" id="wave">
       <span id="waveVal">30</span>
     </label>
-    <button onclick="downloadConfig()">💾 Скачать config.json</button>
+    <button onclick="downloadConfig()">💾 Сохранить config.json</button>
   </div>
 
   <div id="chat"></div>
 
 <script>
-const canvas=document.getElementById("canvas");
-const ctx=canvas.getContext("2d");
-const chat=document.getElementById("chat");
-let angle=0;
+const chat = document.getElementById("chat");
+const speed = document.getElementById("speed");
+const radius = document.getElementById("radius");
+const wave = document.getElementById("wave");
 
-// цель
-const target={x:250,y:150,width:80,height:120};
-
-// update labels
-function updateLabels(){
-  speedVal.textContent=speed.value;
-  radiusVal.textContent=radius.value;
-  waveVal.textContent=wave.value;
-}
-document.querySelectorAll("input[type=range]").forEach(s=>s.addEventListener("input",updateLabels));
-updateLabels();
-
-function addMsg(txt){
-  const div=document.createElement("div");
-  div.textContent=txt;
-  chat.appendChild(div);
+function log(msg){
+  let d=document.createElement("div");
+  d.textContent=msg;
+  chat.appendChild(d);
   chat.scrollTop=chat.scrollHeight;
 }
-addMsg("[System] Configurator ready.");
 
-function loop(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  const cx=target.x, cy=target.y;
-  const speedValv=+speed.value;
-  const radiusValv=+radius.value;
-  const waveValv=+wave.value;
-
-  ctx.strokeStyle="red";
-  ctx.strokeRect(cx-target.width/2, cy-target.height/2, target.width, target.height);
-
-  angle+=(2*Math.PI)/speedValv;
-  let offX=Math.cos(angle)*radiusValv;
-  let offY=Math.sin(angle*2.5)*waveValv;
-  const aimX=cx+offX, aimY=cy+offY;
-
-  ctx.fillStyle="#66ffcc";
-  ctx.beginPath(); ctx.arc(aimX,aimY,8,0,Math.PI*2); ctx.fill();
-  ctx.strokeStyle="#66ffcc";
-  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(aimX,aimY); ctx.stroke();
-
-  if(Date.now()%2000<30){
-    addMsg(`[SpookytimeAI] Yaw/Pitch подсказка (S=${speedValv}, R=${radiusValv}, W=${waveValv})`);
-  }
-  requestAnimationFrame(loop);
+function updateVals(){
+  document.getElementById("speedVal").textContent = speed.value;
+  document.getElementById("radiusVal").textContent = radius.value;
+  document.getElementById("waveVal").textContent = wave.value;
 }
-loop();
+[speed, radius, wave].forEach(e => e.addEventListener("input", updateVals));
+updateVals();
 
 function downloadConfig(){
-  const config={
-    speed:+speed.value,
-    radius:+radius.value,
-    wave:+wave.value
+  const config = {
+    speed: +speed.value,
+    radius: +radius.value,
+    wave: +wave.value
   };
-  const blob=new Blob([JSON.stringify(config,null,2)],{type:'application/json'});
-  const a=document.createElement("a");
-  a.href=URL.createObjectURL(blob);
-  a.download="config.json";
+  const blob = new Blob([JSON.stringify(config, null, 2)], {type:'application/json'});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "config.json";
   a.click();
+  log("⚡ config.json сохранён. Залей его в репозиторий → и эти настройки будут для всех одинаковы.");
 }
 </script>
 </body>
