@@ -2,64 +2,93 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Spookytime AI Наводчик</title>
+  <title>Spookytime AI Rotation (Demo)</title>
   <style>
     body { background:#000; color:#66ffcc; font-family:monospace; text-align:center; }
-    #canvas { margin-top:20px; background:#111; border:2px solid #66ffcc; }
-    #angles { margin-top:10px; }
+    #canvas { background:#111; border:2px solid #66ffcc; display:block; margin:20px auto; }
+    #chat { width:500px; height:200px; margin:20px auto; background:#050505;
+            border:1px solid #333; overflow-y:auto; text-align:left; padding:5px; }
+    .msg { margin:2px 0; }
+    .sys { color:#aaa; }
+    .ai { color:#66ffcc; }
   </style>
 </head>
 <body>
-  <h1>🌀 Spookytime AI Наводчик</h1>
-  <canvas id="canvas" width="500" height="500"></canvas>
-  <div id="angles"></div>
-  <script>
-    const canvas=document.getElementById('canvas');
-    const ctx=canvas.getContext('2d');
-    const target={x:250,y:250,r:30}; // условная цель
-    let angle=0;
+  <h1>🌀 Spookytime AI Rotation (Hitbox Demo)</h1>
+  <canvas id="canvas" width="500" height="400"></canvas>
+  <div id="chat"></div>
 
-    function loop(){
-      ctx.fillStyle="#111";
-      ctx.fillRect(0,0,500,500);
+<script>
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+const chat=document.getElementById("chat");
 
-      // цель
-      ctx.fillStyle="red";
-      ctx.beginPath();
-      ctx.arc(target.x,target.y,target.r,0,Math.PI*2); 
-      ctx.fill();
+// цель (хитбокс)
+const target={x:250,y:200,width:80,height:120};
 
-      // вращение "ауры"
-      angle+=0.05;
-      let radius=120;
-      let offX=Math.cos(angle)*radius;
-      let offY=Math.sin(angle*2.5)*40; // волна как спираль
-      let dotX=target.x+offX;
-      let dotY=target.y+offY;
+// добавляем сообщение в чат
+function addMsg(txt,cls="ai") {
+  const div=document.createElement("div");
+  div.className="msg "+cls;
+  div.textContent=txt;
+  chat.appendChild(div);
+  chat.scrollTop=chat.scrollHeight;
+}
 
-      // точка-наводка
-      ctx.fillStyle="#66ffcc";
-      ctx.beginPath();
-      ctx.arc(dotX,dotY,10,0,Math.PI*2);
-      ctx.fill();
+// добавляем системное приветствие
+addMsg("[Система] Запуск SpookytimeAI...", "sys");
 
-      ctx.strokeStyle="#66ffcc";
-      ctx.beginPath();
-      ctx.moveTo(dotX,dotY);
-      ctx.lineTo(target.x,target.y);
-      ctx.stroke();
+let angle=0;
 
-      // вывод yaw/pitch (упрощенно для 2D)
-      let dx=dotX-target.x;
-      let dy=dotY-target.y;
-      let yaw=(Math.atan2(-dx,radius)*180/Math.PI).toFixed(2);
-      let pitch=(Math.atan2(-dy,radius)*180/Math.PI).toFixed(2);
-      document.getElementById('angles').innerText=
-        `Наводка (Spookytime): Yaw=${yaw}°, Pitch=${pitch}°`;
+function loop(){
+  ctx.clearRect(0,0,500,400);
 
-      requestAnimationFrame(loop);
-    }
-    loop();
-  </script>
+  // хитбокс
+  ctx.strokeStyle="red";
+  ctx.strokeRect(target.x-target.width/2, target.y-target.height/2,
+                 target.width,target.height);
+
+  const cx=target.x;
+  const cy=target.y;
+
+  // логика: радиус рядом с хитбоксом
+  const radius=target.width/2+20; 
+  angle+=(2*Math.PI)/200; // скорость
+
+  const offX=Math.cos(angle)*radius;
+  const offZ=Math.sin(angle)*radius;
+  const offY=(target.height*0.5)-target.height*0.25;
+
+  const aimX=cx+offX;
+  const aimY=cy+offY; // упрощенно, берём 2D
+
+  // рисуем прицел
+  ctx.fillStyle="#66ffcc";
+  ctx.beginPath();
+  ctx.arc(aimX,aimY,8,0,Math.PI*2);
+  ctx.fill();
+
+  // линия к центру
+  ctx.strokeStyle="#66ffcc";
+  ctx.beginPath();
+  ctx.moveTo(cx,cy);
+  ctx.lineTo(aimX,aimY);
+  ctx.stroke();
+
+  // считаем yaw/pitch (упрощенно 2D версия для сайта)
+  let dx=aimX-cx;
+  let dy=aimY-cy;
+  let yaw=(Math.atan2(-dx,radius)*180/Math.PI).toFixed(2);
+  let pitch=(Math.atan2(-dy,radius)*180/Math.PI).toFixed(2);
+
+  // каждые 2 секунды → «подсказка в чат»
+  if (Date.now()%2000 < 30) {
+    addMsg(`[Spookytime AI] цель в радиусе хитбокса (Yaw=${yaw}°, Pitch=${pitch}°) → бей!`);
+  }
+
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
 </body>
 </html>
