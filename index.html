@@ -1,47 +1,65 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<title>SpookytimeAIRotation Compass</title>
-<style>
-  body { background:#000; color:#66ffcc; font-family:monospace; text-align:center; }
-  #canvas { margin-top:20px; background:#111; border:2px solid #66ffcc; }
-</style>
+  <meta charset="UTF-8">
+  <title>Spookytime AI Наводчик</title>
+  <style>
+    body { background:#000; color:#66ffcc; font-family:monospace; text-align:center; }
+    #canvas { margin-top:20px; background:#111; border:2px solid #66ffcc; }
+    #angles { margin-top:10px; }
+  </style>
 </head>
 <body>
-  <h1>🌀 Spookytime AI Rotation (Наводчик)</h1>
+  <h1>🌀 Spookytime AI Наводчик</h1>
   <canvas id="canvas" width="500" height="500"></canvas>
   <div id="angles"></div>
   <script>
-    const canvas = document.getElementById("canvas");
-    const ctx = canvas.getContext("2d");
-    let angle = 0;
-    function draw(){
+    const canvas=document.getElementById('canvas');
+    const ctx=canvas.getContext('2d');
+    const target={x:250,y:250,r:30}; // условная цель
+    let angle=0;
+
+    function loop(){
       ctx.fillStyle="#111";
       ctx.fillRect(0,0,500,500);
+
       // цель
       ctx.fillStyle="red";
       ctx.beginPath();
-      ctx.arc(250,250,30,0,Math.PI*2);
+      ctx.arc(target.x,target.y,target.r,0,Math.PI*2); 
       ctx.fill();
-      // вращающийся прицел
-      angle += 0.05;
-      const r=100;
-      const x=250+Math.cos(angle)*r;
-      const y=250+Math.sin(angle)*r;
+
+      // вращение "ауры"
+      angle+=0.05;
+      let radius=120;
+      let offX=Math.cos(angle)*radius;
+      let offY=Math.sin(angle*2.5)*40; // волна как спираль
+      let dotX=target.x+offX;
+      let dotY=target.y+offY;
+
+      // точка-наводка
       ctx.fillStyle="#66ffcc";
       ctx.beginPath();
-      ctx.arc(x,y,10,0,Math.PI*2);
+      ctx.arc(dotX,dotY,10,0,Math.PI*2);
       ctx.fill();
-      // вычисляем yaw/pitch для подсказки
-      const dx=x-250, dy=y-250;
-      let yaw=Math.atan2(-dx,r)*180/Math.PI;
-      let pitch=Math.atan2(-dy,r)*180/Math.PI;
-      document.getElementById("angles").innerText=
-        `Yaw: ${yaw.toFixed(2)}, Pitch: ${pitch.toFixed(2)}`;
-      requestAnimationFrame(draw);
+
+      ctx.strokeStyle="#66ffcc";
+      ctx.beginPath();
+      ctx.moveTo(dotX,dotY);
+      ctx.lineTo(target.x,target.y);
+      ctx.stroke();
+
+      // вывод yaw/pitch (упрощенно для 2D)
+      let dx=dotX-target.x;
+      let dy=dotY-target.y;
+      let yaw=(Math.atan2(-dx,radius)*180/Math.PI).toFixed(2);
+      let pitch=(Math.atan2(-dy,radius)*180/Math.PI).toFixed(2);
+      document.getElementById('angles').innerText=
+        `Наводка (Spookytime): Yaw=${yaw}°, Pitch=${pitch}°`;
+
+      requestAnimationFrame(loop);
     }
-    draw();
+    loop();
   </script>
 </body>
 </html>
