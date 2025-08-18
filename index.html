@@ -2,104 +2,85 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Spookytime AI Configurator</title>
+  <title>Spookytime Aim Demo</title>
   <style>
-    body {
-      background: #000;
-      color: #66ffcc;
-      font-family: monospace;
-      text-align: center;
-    }
-    #panel {
-      width: 500px;
-      margin: 30px auto;
-      background: #111;
-      border: 1px solid #333;
-      padding: 20px;
-      border-radius: 6px;
-    }
-    label {
-      display: block;
-      margin: 12px 0;
-      text-align: left;
-    }
-    input[type=range] { width: 300px; }
-    button {
-      margin-top: 20px;
-      padding: 8px 15px;
-      background: #111;
-      color: #66ffcc;
-      border: 1px solid #66ffcc;
-      cursor: pointer;
-      font-size: 14px;
-    }
-    #chat {
-      width: 500px;
-      height: 150px;
-      margin: 20px auto;
-      background: #050505;
-      border: 1px solid #333;
-      overflow-y: auto;
-      text-align: left;
-      padding: 5px;
-    }
+    body { background:#000; color:#66ffcc; font-family:monospace; text-align:center; }
+    #canvas { background:#111; border:2px solid #66ffcc; margin-top:20px; }
   </style>
 </head>
 <body>
-  <h1>⚙️ Spookytime AI Configurator</h1>
-
-  <div id="panel">
-    <label>Speed:
-      <input type="range" min="50" max="400" value="200" id="speed">
-      <span id="speedVal">200</span>
-    </label>
-    <label>Radius:
-      <input type="range" min="20" max="200" value="80" id="radius">
-      <span id="radiusVal">80</span>
-    </label>
-    <label>Wave:
-      <input type="range" min="0" max="80" value="30" id="wave">
-      <span id="waveVal">30</span>
-    </label>
-    <button onclick="downloadConfig()">💾 Сохранить config.json</button>
-  </div>
-
-  <div id="chat"></div>
-
+  <h1>🎯 Spookytime Aim Simulation</h1>
+  <button onclick="attack()">⚔ simulate attack</button>
+  <canvas id="canvas" width="500" height="400"></canvas>
+  <div id="angles"></div>
+  
 <script>
-const chat = document.getElementById("chat");
-const speed = document.getElementById("speed");
-const radius = document.getElementById("radius");
-const wave = document.getElementById("wave");
+const canvas=document.getElementById("canvas");
+const ctx=canvas.getContext("2d");
+const angles=document.getElementById("angles");
 
-function log(msg){
-  let d=document.createElement("div");
-  d.textContent=msg;
-  chat.appendChild(d);
-  chat.scrollTop=chat.scrollHeight;
+let lastYaw=0, lastPitch=0;
+let justAttacked=false;
+let random=Math;
+
+function attack(){
+  justAttacked=true;
 }
 
-function updateVals(){
-  document.getElementById("speedVal").textContent = speed.value;
-  document.getElementById("radiusVal").textContent = radius.value;
-  document.getElementById("waveVal").textContent = wave.value;
-}
-[speed, radius, wave].forEach(e => e.addEventListener("input", updateVals));
-updateVals();
+// имитация данных
+const playerEye={x:250,y:350,z:0};
+const target={x:250,y:150,height:100};
 
-function downloadConfig(){
-  const config = {
-    speed: +speed.value,
-    radius: +radius.value,
-    wave: +wave.value
-  };
-  const blob = new Blob([JSON.stringify(config, null, 2)], {type:'application/json'});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "config.json";
-  a.click();
-  log("⚡ config.json сохранён. Залей его в репозиторий → и эти настройки будут для всех одинаковы.");
+function loop(){
+  ctx.fillStyle="#111"; ctx.fillRect(0,0,500,400);
+
+  // рисуем цель
+  ctx.fillStyle="red";
+  ctx.fillRect(target.x-20,target.y-target.height,40,target.height);
+
+  // вычисляем yOffset (как в коде)
+  let yOffset;
+  if(justAttacked){
+    yOffset=0.4 + (random.random()-0.5)*0.1;
+    justAttacked=false;
+  } else {
+    yOffset=0.7 + (random.random()-0.5)*0.1;
+  }
+  
+  // позиция точки прицеливания
+  const targetVec={x:target.x, y:target.y - target.height*yOffset, z:0};
+  const diff={x:targetVec.x-playerEye.x, y:targetVec.y-playerEye.y, z:0};
+
+  const distXZ=Math.sqrt(diff.x*diff.x+diff.z*diff.z);
+  let targetYaw=Math.atan2(-diff.x,diff.z)*180/Math.PI;
+  let targetPitch=Math.atan2(-diff.y,distXZ)*180/Math.PI;
+
+  let smooth=0.5 + random.random()*0.2;
+  let yawRandom=(random.random()-0.5)*0.7;
+  let pitchRandom=(random.random()-0.5)*0.5;
+
+  targetYaw += yawRandom;
+  targetPitch += pitchRandom;
+
+  lastYaw += ((targetYaw-lastYaw))*smooth;
+  lastPitch += ((targetPitch-lastPitch))*smooth;
+  
+  if(lastPitch<-90) lastPitch=-90;
+  if(lastPitch>90) lastPitch=90;
+
+  // рисуем "прицел"
+  const aimX=playerEye.x+lastYaw;
+  const aimY=playerEye.y+lastPitch;
+  ctx.fillStyle="#66ffcc";
+  ctx.beginPath();
+  ctx.arc(aimX,aimY,6,0,Math.PI*2);
+  ctx.fill();
+
+  angles.innerText=`Yaw=${lastYaw.toFixed(2)} Pitch=${lastPitch.toFixed(2)}`;
+
+  requestAnimationFrame(loop);
 }
+loop();
 </script>
 </body>
 </html>
