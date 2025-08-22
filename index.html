@@ -1,86 +1,19 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Spookytime Aim Demo</title>
-  <style>
-    body { background:#000; color:#66ffcc; font-family:monospace; text-align:center; }
-    #canvas { background:#111; border:2px solid #66ffcc; margin-top:20px; }
-  </style>
+<meta charset="UTF-8">
+<title>LoaderGuard</title>
+<style>
+    body { background:#121212; color:#fff; font-family:Arial; text-align:center; }
+    input, button { width:300px; padding:10px; margin:5px; border-radius:5px; border:none; }
+    button { background:#6A5ACD; color:white; cursor:pointer; }
+</style>
 </head>
 <body>
-  <h1>🎯 Spookytime Aim Simulation</h1>
-  <button onclick="attack()">⚔ simulate attack</button>
-  <canvas id="canvas" width="500" height="400"></canvas>
-  <div id="angles"></div>
-  
-<script>
-const canvas=document.getElementById("canvas");
-const ctx=canvas.getContext("2d");
-const angles=document.getElementById("angles");
-
-let lastYaw=0, lastPitch=0;
-let justAttacked=false;
-let random=Math;
-
-function attack(){
-  justAttacked=true;
-}
-
-// имитация данных
-const playerEye={x:250,y:350,z:0};
-const target={x:250,y:150,height:100};
-
-function loop(){
-  ctx.fillStyle="#111"; ctx.fillRect(0,0,500,400);
-
-  // рисуем цель
-  ctx.fillStyle="red";
-  ctx.fillRect(target.x-20,target.y-target.height,40,target.height);
-
-  // вычисляем yOffset (как в коде)
-  let yOffset;
-  if(justAttacked){
-    yOffset=0.4 + (random.random()-0.5)*0.1;
-    justAttacked=false;
-  } else {
-    yOffset=0.7 + (random.random()-0.5)*0.1;
-  }
-  
-  // позиция точки прицеливания
-  const targetVec={x:target.x, y:target.y - target.height*yOffset, z:0};
-  const diff={x:targetVec.x-playerEye.x, y:targetVec.y-playerEye.y, z:0};
-
-  const distXZ=Math.sqrt(diff.x*diff.x+diff.z*diff.z);
-  let targetYaw=Math.atan2(-diff.x,diff.z)*180/Math.PI;
-  let targetPitch=Math.atan2(-diff.y,distXZ)*180/Math.PI;
-
-  let smooth=0.5 + random.random()*0.2;
-  let yawRandom=(random.random()-0.5)*0.7;
-  let pitchRandom=(random.random()-0.5)*0.5;
-
-  targetYaw += yawRandom;
-  targetPitch += pitchRandom;
-
-  lastYaw += ((targetYaw-lastYaw))*smooth;
-  lastPitch += ((targetPitch-lastPitch))*smooth;
-  
-  if(lastPitch<-90) lastPitch=-90;
-  if(lastPitch>90) lastPitch=90;
-
-  // рисуем "прицел"
-  const aimX=playerEye.x+lastYaw;
-  const aimY=playerEye.y+lastPitch;
-  ctx.fillStyle="#66ffcc";
-  ctx.beginPath();
-  ctx.arc(aimX,aimY,6,0,Math.PI*2);
-  ctx.fill();
-
-  angles.innerText=`Yaw=${lastYaw.toFixed(2)} Pitch=${lastPitch.toFixed(2)}`;
-
-  requestAnimationFrame(loop);
-}
-loop();
-</script>
+    <h2>Добро пожаловать!</h2>
+    <p>Введите данные учетной записи</p>
+    <input type="text" placeholder="Введите логин"><br>
+    <input type="password" placeholder="Введите ключ"><br>
+    <button>Авторизоваться →</button>
 </body>
 </html>
