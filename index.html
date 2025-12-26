@@ -1,74 +1,172 @@
-package client.main.command.impl.feature;
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HydrogenDLC - Global IRC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: #0f172a; color: #e2e8f0; font-family: 'Segoe UI', sans-serif; }
+        .glass { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(16px); border: 1px solid rgba(51, 65, 85, 0.6); }
+        .message { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .avatar { background: linear-gradient(135deg, #0ea5e9, #6366f1); }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <div class="fixed inset-0 -z-10 overflow-hidden">
+        <div class="absolute top-0 left-0 w-96 h-96 bg-sky-600/20 rounded-full blur-3xl animate-pulse"></div>
+        <div class="absolute bottom-0 right-0 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl animate-pulse"></div>
+    </div>
 
-import client.main.Client;
-import client.main.command.Parameters;
-import net.minecraft.client.Minecraft;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.event.HoverEvent;
-import net.minecraft.util.text.Style;
-import net.minecraft.util.StringUtils;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Arrays;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+    <header class="glass border-b border-slate-700 p-5 flex items-center justify-between">
+        <div class="flex items-center gap-5">
+            <div class="w-14 h-14 avatar rounded-2xl flex items-center justify-center text-3xl font-bold text-white shadow-2xl">
+                H
+            </div>
+            <div>
+                <h1 class="text-3xl font-bold text-white">HydrogenDLC Global IRC</h1>
+                <div class="flex items-center gap-3 text-sm mt-1">
+                    <div id="status-dot" class="w-3 h-3 bg-red-500 rounded-full animate-ping"></div>
+                    <span id="status-text" class="text-slate-400 font-medium">Подключение...</span>
+                </div>
+            </div>
+        </div>
+    </header>
 
-public class IrcKuCommand extends IRCCommand {
+    <main class="flex-1 glass m-4 md:m-6 rounded-3xl flex flex-col shadow-2xl">
+        <div id="messages" class="flex-1 overflow-y-auto p-6 space-y-5"></div>
 
-    private static final String CHAT_PREFIX = "§8[§9IRC§8]§r ";
-    private static final long COOLDOWN_MS = 3000;
-    private static long lastMessageTime = 0;
-    private static int totalMessagesSent = 0;
+        <div class="p-5 border-t border-slate-700">
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex items-center gap-3 flex-1">
+                    <img id="player-avatar" src="https://mc-heads.net/avatar/Steve/100" class="w-12 h-12 rounded-xl shadow-lg">
+                    <input id="nick-input" type="text" placeholder="Твой ник из Minecraft" 
+                           class="bg-slate-900/70 border border-slate-700 rounded-xl px-5 py-3 text-white flex-1 focus:outline-none focus:border-sky-500 transition">
+                </div>
+                <input id="message-input" type="text" placeholder="Сообщение..." 
+                       class="bg-slate-900/70 border border-slate-700 rounded-xl px-5 py-3 text-white flex-1 focus:outline-none focus:border-sky-500 transition">
+                <button id="send-btn" class="px-10 py-3 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 rounded-xl font-bold text-white shadow-lg transition">
+                    Отправить
+                </button>
+            </div>
+        </div>
+    </main>
 
-    private static final List<IRCMessage> globalHistory = Collections.synchronizedList(new ArrayList<>());
-    private static final int MAX_GLOBAL_HISTORY = 100;
+    <script>
+        const webhookUrl = "https://discord.com/api/webhooks/1453859142031638661/lhg4udIVqnohhi7ozFfGJIzHR7YB-iIDcrpUOcrNM6TNu4vIB4zFJRMvvpgSVBK2Mh0N";
+        const channelId = "1453886510905430179";
+        const botToken = "MTQ1Mzg2ODcwNDQ5NTU2NzA3MA.Gzb3fc._f0vrfJ63VLsDhUqa4Cl6Jd2_Dp7ubMhNzV9G4";
 
-    @Override
-    public String name() { return "irc"; }
+        const messagesDiv = document.getElementById('messages');
+        const nickInput = document.getElementById('nick-input');
+        const avatarImg = document.getElementById('player-avatar');
+        const messageInput = document.getElementById('message-input');
+        const sendBtn = document.getElementById('send-btn');
+        const statusText = document.getElementById('status-text');
+        const statusDot = document.getElementById('status-dot');
 
-    @Override
-    public String description() { return "Глобальный IRC чат (Minecraft + Web)"; }
+        let processedIds = new Set();
 
-    @Override
-    public List<String> adviceMessage() {
-        return Arrays.asList(
-            "§7• §f.irc <текст> §7— отправить в глобальный чат",
-            "§7• §f.irc help §7— справка",
-            "§7• §fПоддержка веб-чата",
-            "§7• §fКулдаун: 3 сек"
-        );
-    }
+        // Авто-аватар по нику
+        nickInput.addEventListener('input', () => {
+            const nick = nickInput.value.trim() || "Steve";
+            avatarImg.src = `https://mc-heads.net/avatar/${nick}/100`;
+        });
 
-    @Override
-    public void execute(Parameters parameters) {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return;
+        // Добавление сообщения
+        function addMessage(nick, text, server = "Web", isOwn = false) {
+            const div = document.createElement('div');
+            div.className = `message flex gap-5 ${isOwn ? 'flex-row-reverse' : ''}`;
 
-        String fullMessage = parameters.collectMessage(0);
-        if (fullMessage == null || fullMessage.trim().isEmpty()) {
-            showHelp();
-            return;
+            const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
+            div.innerHTML = `
+                <img src="https://mc-heads.net/avatar/${nick}/100" class="w-14 h-14 rounded-2xl shadow-xl flex-shrink-0">
+                <div class="${isOwn ? 'text-right' : ''} flex-1">
+                    <div class="flex items-baseline gap-3 ${isOwn ? 'flex-row-reverse' : ''}">
+                        <span class="font-bold text-sky-300 text-lg">${nick}</span>
+                        ${server !== "Web" ? `<span class="text-sm text-slate-500">[${server}]</span>` : ''}
+                        <span class="text-xs text-slate-500">${time}</span>
+                    </div>
+                    <div class="mt-2 text-slate-100 bg-slate-800/60 px-6 py-4 rounded-3xl inline-block max-w-2xl shadow-md">
+                        ${text.replace(/&[0-9a-fk-orlmn]/g, '')}
+                    </div>
+                </div>
+            `;
+            messagesDiv.appendChild(div);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
-        String trimmed = fullMessage.trim();
+        // Отправка с сайта → в Minecraft (через webhook с форматом, который чит понимает)
+        async function sendMessage() {
+            const nick = nickInput.value.trim() || "WebUser";
+            const text = messageInput.value.trim();
+            if (!text) return;
 
-        long now = System.currentTimeMillis();
-        if (now - lastMessageTime < COOLDOWN_MS && lastMessageTime > 0) {
-            long rem = COOLDOWN_MS - (now - lastMessageTime);
-            mc.player.sendMessage(new StringTextComponent(String.format("§c[IRC] Подожди §e%d.%03d §cсек", rem / 1000, rem % 1000)), mc.player.getUniqueID());
-            return;
+            // Формат, который твой чит парсит: [Web] Nick: сообщение
+            const formatted = `[Web] ${nick}: ${text}`;
+
+            const payload = {
+                content: formatted
+            };
+
+            await fetch(webhookUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            addMessage(nick, text, "Web", true);
+            messageInput.value = "";
         }
 
-        String[] parts = trimmed.split(" ", 2);
-        String cmd = parts[0].toLowerCase();
+        sendBtn.onclick = sendMessage;
+        messageInput.onkeydown = e => { if (e.key === "Enter") sendMessage(); };
 
-        switch (cmd) {
-            case "help": showHelp(); return;
-            case "history": case "h": showHistory(); return;
-            case "clear": case "c": clearHistory(); return;
-            case "stats": showStats(); return;
-            case "test": sendTestMessage(); return;
-            case "color": case "colors": showColors(); return;
-            case "time": showTime(); return;
-           
+        // Получение сообщений из Minecraft → на сайт
+        async function pollMessages() {
+            try {
+                const res = await fetch(`https://discord.com/api/v10/channels/${channelId}/messages?limit=30`, {
+                    headers: { "Authorization": "Bot " + botToken }
+                });
+
+                if (res.status !== 200) throw new Error();
+
+                const messages = await res.json();
+
+                for (let i = messages.length - 1; i >= 0; i--) {
+                    const msg = messages[i];
+                    if (processedIds.has(msg.id)) continue;
+
+                    if (msg.webhook_id) {
+                        const content = msg.content;
+
+                        const match = content.match(/\[(.+?)\]\s*(.+?):\s*(.+)/);
+                        if (match) {
+                            const server = match[1];
+                            const nick = match[2];
+                            const text = match[3];
+                            addMessage(nick, text, server);
+                        }
+                    }
+
+                    processedIds.add(msg.id);
+                }
+
+                statusDot.className = "w-3 h-3 bg-green-500 rounded-full";
+                statusText.textContent = "Онлайн";
+            } catch (e) {
+                statusDot.className = "w-3 h-3 bg-red-500 rounded-full animate-ping";
+                statusText.textContent = "Оффлайн";
+            }
+
+            setTimeout(pollMessages, 2000);
+        }
+
+        // Старт
+        addMessage("System", "🌊 HydrogenDLC Global IRC запущен!\nТеперь чат общий: Minecraft ↔ Веб-сайт", "System");
+        pollMessages();
+    </script>
+</body>
+</html>
